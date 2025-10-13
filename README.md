@@ -40,38 +40,43 @@ The project is based on the following set of equations as defined in the officia
 
 The system is governed by a single ordinary differential equation for the enclosed luminosity $L$ as a function of the radius $r$:
 
-$$
+```math
 \frac{dL}{dr} = 4\pi r^2 \rho(r) \left[ \epsilon_{\text{nuc}}(r) - \epsilon_{\text{loss}}(r) \right] \quad \text{(1)}
-$$
+```
 
 ### Surrogate Physical Profiles
 
 To maintain a tractable system, the density $\rho(r)$ and temperature $T(r)$ are not solved for dynamically but are given by prescribed analytical forms:
 
-$$
+```math
 \rho(r) = \rho_c \left(1 - \frac{r^2}{R^2}\right)_+ \quad \text{and} \quad T(r) = T_c \left(1 - \frac{r^2}{R^2}\right)_+ \quad \text{(2)}
-$$
+```
 
 where $(x)_+ = \max(x,0)$.
 
 ### Constitutive Physics
 
 The known and unknown physics terms are defined as:
+
 - **Known Nuclear Term**:
-$$
+
+```math
 \epsilon_{\text{nuc}}(r) = \epsilon_0 \rho(r) \left( \frac{T(r)}{T_*} \right)^{n_{\text{nuc}}} \quad \text{(3)}
-$$
+```
+
 - **"Unknown" Loss Term (Ground Truth)**:
-$$
+
+```math
 \epsilon_{\text{loss}}(r) = \lambda_0 \left( \frac{T(r)}{T_*} \right)^{n_{\text{loss}}} \quad \text{(4)}
-$$
+```
 
 ### The Universal Differential Equation (UDE) Formulation
 
 The UDE model retains the known physical terms and replaces only the unknown `ε_loss` term with a neural network `NN_θ(r, L)`:
-$$
+
+```math
 \frac{dL}{dr} = 4\pi r^2 \rho(r) \left[ \epsilon_{\text{nuc}}(r) - NN_{\theta}(r, L) \right] \quad \text{(5)}
-$$
+```
 
 ---
 
