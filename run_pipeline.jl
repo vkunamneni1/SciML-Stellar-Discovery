@@ -1,6 +1,8 @@
+# Activate the project environment
 using Pkg
 Pkg.activate(".")
 
+# Import necessary libraries
 using DifferentialEquations
 using Flux
 using DiffEqFlux
@@ -11,6 +13,15 @@ using Random
 using CSV
 using DataFrames
 using SymbolicRegression
+using Dates
+
+# --- Hyperparameters & Configuration ---
+const UDE_LEARNING_RATE = 0.001
+const UDE_MAX_ITERS = 5000
+const UDE_L2_LAMBDA = 1e-5
+const NODE_LEARNING_RATE = 0.01
+const NODE_MAX_ITERS = 1000
+# ------------------------------------
 
 include("src/StellarModels.jl")
 using .StellarModels
@@ -34,6 +45,11 @@ println("Saved baseline plot to plots/1_baseline_solution.png")
 println("\nStep 2: Generating synthetic observational data...")
 radii = sol_ode.t
 true_L_values = hcat(sol_ode.u...)'
+
+df_baseline = DataFrame(radius=radii, luminosity=vec(true_L_values))
+CSV.write("data/baseline_solution.csv", df_baseline)
+println("Saved baseline solution data to data/baseline_solution.csv")
+
 noise_level = 0.01 * maximum(true_L_values)
 Random.seed!(123)
 noise = noise_level .* randn(length(radii))
@@ -79,7 +95,7 @@ adtype_node = Optimization.AutoZygote()
 optf_node = OptimizationFunction((x, p) -> loss_node(x), adtype_node)
 optprob_node = Optimization.OptimizationProblem(optf_node, p_node)
 
-result_node = Optimization.solve(optprob_node, ADAM(0.01), callback=callback_node, maxiters=1000)
+result_node = Optimization.solve(optprob_node, ADAM(NODE_LEARNING_RATE), callback=callback_node, maxiters=NODE_MAX_ITERS)
 p_trained_node = result_node.u
 println("Neural ODE training complete.")
 
@@ -122,8 +138,7 @@ function loss_ude(p)
         return Inf, pred
     end
     data_loss = sum(abs2, true_L_values .- hcat(pred.u...)')
-    λ = 1e-5
-    reg_loss = λ * l2_regularization(p)
+    reg_loss = UDE_L2_LAMBDA * l2_regularization(p)
     return data_loss + reg_loss, pred
 end
 
@@ -134,7 +149,7 @@ end
 adtype_ude = Optimization.AutoZygote()
 optf_ude = OptimizationFunction((x, p) -> loss_ude(x)[1], adtype_ude)
 optprob_ude = Optimization.OptimizationProblem(optf_ude, p_ude)
-result_ude = Optimization.solve(optprob_ude, ADAM(0.001), callback=callback_ude, maxiters=5000)
+result_ude = Optimization.solve(optprob_ude, ADAM(UDE_LEARNING_RATE), callback=callback_ude, maxiters=UDE_MAX_ITERS)
 p_trained_ude = result_ude.u
 println("UDE training complete.")
 
@@ -181,5 +196,27 @@ xlabel!("Radius (r)")
 ylabel!("Luminosity L(r)")
 savefig(plt_final, "plots/4_final_comparison.png")
 println("Saved final comparison plot to plots/4_final_comparison.png")
+
+println("\nLogging run details...")
+
+final_ude_loss, _ = loss_ude(p_trained_ude)
+final_node_loss = loss_node(p_trained_node)
+
+open("run_log.md", "a") do f
+    write(f, "## Run Summary: $(now())\n\n")
+    write(f, "**Hyperparameters:**\n")
+    write(f, "- UDE Learning Rate: `$UDE_LEARNING_RATE`\n")
+    write(f, "- UDE Max Iterations: `$UDE_MAX_ITERS`\n")
+    write(f, "- UDE L2 Lambda: `$UDE_L2_LAMBDA`\n")
+    write(f, "- Neural ODE Learning Rate: `$NODE_LEARNING_RATE`\n")
+    write(f, "- Neural ODE Max Iterations: `$NODE_MAX_ITERS`\n\n")
+    write(f, "**Final Results:**\n")
+    write(f, "- Final UDE Loss: `$final_ude_loss`\n")
+    write(f, "- Final Neural ODE Loss: `$final_node_loss`\n")
+    write(f, "- Discovered Equation: `$equation_string`\n")
+    write(f, "\n---\n\n")
+end
+
+println("Run details logged to run_log.md")
 
 println("\n--- Project Pipeline Finished ---")
