@@ -1,0 +1,9 @@
+# Julia
+*.log
+*.out
+Manifest.toml.orig
+/instantiate.log
+
+# Data and Outputs (optional, but good practice for clean repos)
+/data/
+/outputs/
