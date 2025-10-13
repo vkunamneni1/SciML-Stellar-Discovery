@@ -6,4 +6,3 @@ Manifest.toml.orig
 
 # Data and Outputs (optional, but good practice for clean repos)
 /data/
-/outputs/

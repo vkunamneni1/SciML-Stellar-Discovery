@@ -1,37 +1,55 @@
-# Discovering Hidden Physics with Universal Differential Equations
+# Missing Term Recovery in Stellar Structure Equations
 
-This project uses Scientific Machine Learning (SciML) to discover a missing physical law in a simplified model of a star's energy equation.
+## Abstract
 
-## Project Goal
+This project demonstrates the recovery of a missing physical **term** in a stellar energy toy model using a Universal Differential Equation (UDE). A physics-informed model, where a neural network learns only the unknown energy loss term, is benchmarked against a black-box Neural ODE. The trained UDE component is then distilled into a closed-form analytical expression via symbolic regression, successfully recovering the true underlying physical **term**.
 
-The primary goal is to demonstrate that a Universal Differential Equation (UDE), a type of physics-informed neural network, can accurately learn a hidden term in a known differential equation from data. Its performance is compared against a standard "black-box" Neural ODE to highlight the benefits of the physics-informed approach.
+---
+
+## Methodology
+
+The workflow consists of four stages:
+
+#### 1. Baseline Model
+A complete physics-based Ordinary Differential Equation (ODE) is solved to generate the ground-truth data for the star's luminosity profile, `L(r)`. This serves as the baseline for our experiment.
+
+![Baseline Solution Plot](plots/1_baseline_solution.png)
+
+#### 2. Black-Box Model (Neural ODE)
+A Neural ODE is trained on synthetic observational data to benchmark the performance of a purely data-driven approach.
+
+#### 3. Physics-Informed Model (UDE)
+A UDE is implemented where the known nuclear energy generation term is preserved, and a neural network (`NN(r, L)`) learns a correction factor for the missing energy loss term.
+
+#### 4. Symbolic Discovery
+Symbolic regression is applied to the UDE's trained neural network component to find its underlying mathematical formula.
+
+---
 
 ## Key Results
 
-### 1. UDE Term Recovery
-The UDE was able to learn the missing `ϵ_loss` term with near-perfect accuracy.
+#### 1. Model Performance Comparison
+The physics-informed UDE demonstrates superior accuracy and adherence to the true physical dynamics compared to the black-box Neural ODE. The UDE's prediction is visually indistinguishable from the ground truth.
 
-![UDE Recovery Plot](outputs/3_ude_recovery.png)
+![Final Comparison Plot](plots/4_final_comparison.png)
 
-### 2. Final Model Comparison
-The final comparison shows that the physics-informed UDE significantly outperforms the black-box Neural ODE, with its prediction being visually indistinguishable from the true physics.
+#### 2. Term Recovery & Symbolic Discovery
+The UDE successfully learned the behavior of the missing energy loss term across the star's radius. Symbolic regression on the learned component correctly distilled its analytical form to a constant, matching the true physical parameter `λ₀ = 0.3`.
 
-![Final Comparison Plot](outputs/4_final_comparison.png)
+![UDE Recovery Plot](plots/3_ude_recovery.png)
 
-### 3. Discovered Equation
-Symbolic regression was used to analyze the trained UDE. It successfully discovered that the learned correction factor was a constant with a value of **`0.3`**, matching the true physical parameter `λ₀`.
+**Discovered Analytical Form for the Correction Factor:**
+```
+0.2999977...
+```
 
-## Analysis and Conclusion
+---
 
-The UDE's high accuracy stems from its hybrid structure; by incorporating known physics, it only needed to learn a simple missing component. In contrast, the black-box Neural ODE struggled because it had to learn the entire complex system from scratch.
+## How to Reproduce
 
-This project demonstrates that combining existing scientific knowledge with machine learning is a far more powerful and scientifically useful approach than using machine learning as a pure black box.
-
-## How to Run
-
-1.  Make sure you have Julia installed.
+1.  Ensure you have Julia installed.
 2.  Clone this repository.
-3.  Navigate to the project folder and run the following command in your terminal to install the necessary packages and run the pipeline:
+3.  Navigate to the project folder and run the following command in your terminal. This will install the necessary packages and execute the entire pipeline:
     ```bash
     julia --project -e 'using Pkg; Pkg.instantiate(); include("run_pipeline.jl")'
     ```
