@@ -1,7 +1,6 @@
 # Missing Term Recovery in Stellar Structure Equations using Scientific Machine Learning
 
-**Author**: Veda  
-**Advisor**: Vizuara AI Labs
+**Author**: Vedaswaroop Kunamneni  
 
 ---
 
