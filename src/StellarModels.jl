@@ -10,7 +10,7 @@ const ρ_c = 1.0     # Central density (nondimensional)
 const T_c = 1.0     # Central temperature (nondimensional)
 const T_star = 1.0  # Reference temperature T*
 const ϵ₀ = 1.0      # Nuclear source scale
-const λ₀ = 0.3      # Loss term scale
+const λ₀ = 0.3      # Loss term scale (ground truth)
 
 ρ(r) = ρ_c * max(0.0, 1.0 - (r/R)^2)
 
