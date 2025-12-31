@@ -2,7 +2,7 @@
 
 julia_version = "1.10.9"
 manifest_format = "2.0"
-project_hash = "a39cec32ddcbf1189ce762c67a50c4f9fd553220"
+project_hash = "443d0c4773d30f741d585d1bd1ad65f0aec39ad1"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "27cecae79e5cc9935255f90c53bb831cc3c870d7"
@@ -217,6 +217,39 @@ deps = ["Static"]
 git-tree-sha1 = "f21cfd4950cb9f0587d5067e69405ad2acd27b87"
 uuid = "62783981-4cbd-42fc-bca8-16325de8dc4b"
 version = "0.1.6"
+
+[[deps.Boltz]]
+deps = ["ADTypes", "ArgCheck", "Artifacts", "ChainRulesCore", "Compat", "ConcreteStructs", "Downloads", "ForwardDiff", "Functors", "LazyArtifacts", "Lux", "LuxCore", "LuxLib", "MLDataDevices", "Markdown", "NNlib", "Random", "Reexport", "Scratch", "Setfield", "Static", "Statistics", "WeightInitializers"]
+git-tree-sha1 = "a4dcc3fcc2ec87a2b18bbaafa3b478ddc52ccee4"
+uuid = "4544d5e4-abc5-4dea-817f-29e4c205d9c8"
+version = "1.7.0"
+
+    [deps.Boltz.extensions]
+    BoltzDataInterpolationsExt = "DataInterpolations"
+    BoltzDynamicExpressionsExt = "DynamicExpressions"
+    BoltzEnzymeExt = "Enzyme"
+    BoltzJLD2Ext = "JLD2"
+    BoltzMetalheadExt = "Metalhead"
+    BoltzPickleExt = "Pickle"
+    BoltzReactantExt = ["Reactant", "ReactantCore"]
+    BoltzReverseDiffExt = "ReverseDiff"
+    BoltzSafeTensorsExt = "SafeTensors"
+    BoltzTrackerExt = "Tracker"
+    BoltzZygoteExt = "Zygote"
+
+    [deps.Boltz.weakdeps]
+    DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
+    DynamicExpressions = "a40a106e-89c9-4ca8-8020-a735e8728b6b"
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+    Metalhead = "dbeba491-748d-5e0e-a39e-b530a07fa0cc"
+    Pickle = "fbb45041-c46e-462f-888f-7c521cafbc2c"
+    Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+    ReactantCore = "a3311ec8-5e00-46d5-b541-4f83e724a433"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    SafeTensors = "eeda0dda-7046-4914-a807-2495fc7abb89"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [[deps.BoundaryValueDiffEq]]
 deps = ["ADTypes", "BoundaryValueDiffEqAscher", "BoundaryValueDiffEqCore", "BoundaryValueDiffEqFIRK", "BoundaryValueDiffEqMIRK", "BoundaryValueDiffEqMIRKN", "BoundaryValueDiffEqShooting", "DiffEqBase", "FastClosures", "ForwardDiff", "LinearAlgebra", "Reexport", "SciMLBase"]
@@ -568,6 +601,18 @@ weakdeps = ["Functors"]
 
     [deps.DiffEqCallbacks.extensions]
     DiffEqCallbacksFunctorsExt = "Functors"
+
+[[deps.DiffEqFlux]]
+deps = ["ADTypes", "Boltz", "ChainRulesCore", "ConcreteStructs", "Distributions", "LinearAlgebra", "Lux", "LuxCore", "LuxLib", "Random", "Reexport", "SciMLBase", "SciMLSensitivity", "Setfield", "Static"]
+git-tree-sha1 = "163c3f6f0a4a592eb312fb927b59f883c1edb1cf"
+uuid = "aae7a2af-3d4f-5e19-a356-7da93b79d9d0"
+version = "4.4.0"
+
+    [deps.DiffEqFlux.extensions]
+    DiffEqFluxDataInterpolationsExt = "DataInterpolations"
+
+    [deps.DiffEqFlux.weakdeps]
+    DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 
 [[deps.DiffEqNoiseProcess]]
 deps = ["DiffEqBase", "Distributions", "GPUArraysCore", "LinearAlgebra", "Markdown", "Optim", "PoissonRandom", "QuadGK", "Random", "Random123", "RandomNumbers", "RecipesBase", "RecursiveArrayTools", "ResettableStacks", "SciMLBase", "StaticArraysCore", "Statistics"]
@@ -1573,6 +1618,112 @@ version = "1.1.1"
 
     [deps.LossFunctions.weakdeps]
     CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+
+[[deps.Lux]]
+deps = ["ADTypes", "Adapt", "ArgCheck", "ArrayInterface", "ChainRulesCore", "Compat", "ConcreteStructs", "DiffResults", "DispatchDoctor", "EnzymeCore", "FastClosures", "ForwardDiff", "Functors", "GPUArraysCore", "LinearAlgebra", "LuxCore", "LuxLib", "MLDataDevices", "MacroTools", "Markdown", "NNlib", "Optimisers", "Preferences", "Random", "Reexport", "SIMDTypes", "Setfield", "Static", "StaticArraysCore", "Statistics", "WeightInitializers"]
+git-tree-sha1 = "c300d2df439a343a840dd8ef6b0910ce4cafc8c6"
+uuid = "b2108857-7c20-44ae-9111-449ecde12c47"
+version = "1.21.1"
+
+    [deps.Lux.extensions]
+    LuxComponentArraysExt = "ComponentArrays"
+    LuxEnzymeExt = "Enzyme"
+    LuxFluxExt = "Flux"
+    LuxLossFunctionsExt = "LossFunctions"
+    LuxMLUtilsExt = "MLUtils"
+    LuxMPIExt = "MPI"
+    LuxMPINCCLExt = ["CUDA", "MPI", "NCCL"]
+    LuxMooncakeExt = "Mooncake"
+    LuxReactantExt = ["Enzyme", "Reactant", "ReactantCore"]
+    LuxReverseDiffExt = ["FunctionWrappers", "ReverseDiff"]
+    LuxSimpleChainsExt = "SimpleChains"
+    LuxTrackerExt = "Tracker"
+    LuxZygoteExt = "Zygote"
+
+    [deps.Lux.weakdeps]
+    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+    ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+    FunctionWrappers = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
+    LossFunctions = "30fc2ffe-d236-52d8-8643-a9d8f7c094a7"
+    MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
+    MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    NCCL = "3fe64909-d7a1-4096-9b7d-7a0f12cf0f6b"
+    Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+    ReactantCore = "a3311ec8-5e00-46d5-b541-4f83e724a433"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    SimpleChains = "de6bee2f-e2f4-4ec7-b6ed-219cc6f6e9e5"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[[deps.LuxCore]]
+deps = ["DispatchDoctor", "Random", "SciMLPublic"]
+git-tree-sha1 = "ee3794a2ca3022bc066b5fb87b135c1d5f3b1cb7"
+uuid = "bb33d45b-7691-41d6-9220-0943567d0623"
+version = "1.4.2"
+
+    [deps.LuxCore.extensions]
+    LuxCoreArrayInterfaceReverseDiffExt = ["ArrayInterface", "ReverseDiff"]
+    LuxCoreArrayInterfaceTrackerExt = ["ArrayInterface", "Tracker"]
+    LuxCoreChainRulesCoreExt = "ChainRulesCore"
+    LuxCoreEnzymeCoreExt = "EnzymeCore"
+    LuxCoreFunctorsExt = "Functors"
+    LuxCoreMLDataDevicesExt = ["Adapt", "MLDataDevices"]
+    LuxCoreReactantExt = "Reactant"
+    LuxCoreSetfieldExt = "Setfield"
+
+    [deps.LuxCore.weakdeps]
+    Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+    ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
+    Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+    Functors = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
+    MLDataDevices = "7e8f7934-dd98-4c1a-8fe8-92b47a384d40"
+    Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    Setfield = "efcf1570-3423-57d1-acb7-fd33fddbac46"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
+
+[[deps.LuxLib]]
+deps = ["ArrayInterface", "CPUSummary", "ChainRulesCore", "DispatchDoctor", "EnzymeCore", "FastClosures", "ForwardDiff", "Functors", "KernelAbstractions", "LinearAlgebra", "LuxCore", "MLDataDevices", "Markdown", "NNlib", "Preferences", "Random", "Reexport", "SciMLPublic", "Static", "StaticArraysCore", "Statistics"]
+git-tree-sha1 = "2f80ab5ff577e247b5dc2df1a726e11aff5e78a0"
+uuid = "82251201-b29d-42c6-8e01-566dec8acb11"
+version = "1.12.1"
+
+    [deps.LuxLib.extensions]
+    LuxLibAppleAccelerateExt = "AppleAccelerate"
+    LuxLibBLISBLASExt = "BLISBLAS"
+    LuxLibCUDAExt = "CUDA"
+    LuxLibEnzymeExt = "Enzyme"
+    LuxLibLoopVectorizationExt = ["LoopVectorization", "Polyester"]
+    LuxLibMKLExt = "MKL"
+    LuxLibOctavianExt = ["Octavian", "LoopVectorization"]
+    LuxLibReactantExt = ["Reactant", "ReactantCore"]
+    LuxLibReverseDiffExt = "ReverseDiff"
+    LuxLibSLEEFPiratesExt = "SLEEFPirates"
+    LuxLibTrackerAMDGPUExt = ["AMDGPU", "Tracker"]
+    LuxLibTrackerExt = "Tracker"
+    LuxLibcuDNNExt = ["CUDA", "cuDNN"]
+
+    [deps.LuxLib.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+    AppleAccelerate = "13e28ba4-7ad8-5781-acae-3021b1ed3924"
+    BLISBLAS = "6f275bd8-fec0-4d39-945b-7e95a765fa1e"
+    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
+    MKL = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
+    Octavian = "6fd5a793-0b7e-452c-907f-f8bfe9c57db4"
+    Polyester = "f517fe37-dbe3-4b94-8317-1923a5111588"
+    Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+    ReactantCore = "a3311ec8-5e00-46d5-b541-4f83e724a433"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    SLEEFPirates = "476501e8-09a2-5ece-8869-fb82de89a1fa"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
+    cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "oneTBB_jll"]
@@ -3130,6 +3281,26 @@ git-tree-sha1 = "b1be2855ed9ed8eac54e5caff2afcdb442d52c23"
 uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
 version = "1.4.2"
 
+[[deps.WeightInitializers]]
+deps = ["ArgCheck", "ConcreteStructs", "GPUArraysCore", "LinearAlgebra", "Random", "SpecialFunctions", "Statistics"]
+git-tree-sha1 = "c0a2569d1e88648616450ad065d1a5a0138a6d02"
+uuid = "d49dbf32-c5c2-4618-8acc-27bb2598ef2d"
+version = "1.2.1"
+
+    [deps.WeightInitializers.extensions]
+    WeightInitializersAMDGPUExt = "AMDGPU"
+    WeightInitializersCUDAExt = "CUDA"
+    WeightInitializersChainRulesCoreExt = "ChainRulesCore"
+    WeightInitializersGPUArraysExt = "GPUArrays"
+    WeightInitializersReactantExt = "Reactant"
+
+    [deps.WeightInitializers.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
+    Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+
 [[deps.WorkerUtilities]]
 git-tree-sha1 = "cd1659ba0d57b71a464a29e64dbc67cfe83d54e7"
 uuid = "76eceee3-57b5-4d4a-8e66-0e911cebbf60"
@@ -3391,7 +3562,7 @@ uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
 version = "1.52.0+1"
 
 [[deps.oneTBB_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
+deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
 git-tree-sha1 = "d5a767a3bb77135a99e433afe0eb14cd7f6914c3"
 uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
 version = "2022.0.0+0"
