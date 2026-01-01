@@ -1,14 +1,13 @@
 # Missing Term Recovery in Stellar Structure Equations using Scientific Machine Learning
 
 **Author:** Vedaswaroop Kunamneni  
-**Course:** SciML Bootcamp - Assignment 3  
 **Date:** December 2025
 
 ---
 
 ## Abstract
 
-This repository presents a comprehensive investigation into the recovery of unknown physical terms in stellar structure equations using Scientific Machine Learning (SciML) techniques. The primary objective is to demonstrate the capability of Universal Differential Equations (UDEs) to discover missing energy loss mechanisms in a simplified stellar model, benchmarked against black-box Neural Ordinary Differential Equations (Neural ODEs). The study employs a physics-constrained single-parameter learning approach that enforces the known temperature dependence structure while learning only the unknown amplitude coefficient. Experimental results demonstrate that the UDE achieves near-perfect recovery of the true physical law with a mean squared error of 1.07e-10, significantly outperforming the Neural ODE baseline across all noise levels and forecasting scenarios.
+This project offers a thorough analysis of the use of Scientific Machine Learning (SciML) techniques to recover unknown physical terms in stellar structure equations. The main goal is to show that, when compared to black-box Neural Ordinary Differential Equations (Neural ODEs), Universal Differential Equations (UDEs) can identify missing energy loss mechanisms in a simplified stellar model. The study uses a physics-constrained single-parameter learning strategy that learns only the unknown amplitude coefficient while enforcing the known temperature dependence structure. According to experimental results, the UDE significantly outperforms the Neural ODE baseline across all noise levels and forecasting scenarios, achieving nearly perfect recovery of the true physical law with a mean squared error of 1.07e-10.
 
 ---
 
@@ -406,13 +405,3 @@ SciML-Stellar-Discovery/
 5. Bezanson, J., et al. (2017). "Julia: A Fresh Approach to Numerical Computing." SIAM Review, 59(1), 65-98.
 
 ---
-
-## License
-
-This project is developed for educational purposes as part of the SciML Bootcamp curriculum.
-
----
-
-## Acknowledgments
-
-This work was completed as part of the Scientific Machine Learning Bootcamp. The project framework and physical model specification were provided in the course assignment materials.
