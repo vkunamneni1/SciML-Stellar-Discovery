@@ -1,17 +1,3 @@
-#=
-================================================================================
- Missing Term Recovery in Stellar Structure Equations using Scientific ML
- Author: Vedaswaroop Kunamneni
- 
- FIXED VERSION - Addresses all identified issues:
- 1. Physics-informed NN architecture (input is r only, since ε_loss = f(T(r)) = f(r))
- 2. Proper relative noise model
- 3. Added physics regularization loss
- 4. Removed 0% noise case from robustness test
- 5. Better network architecture for the physics
-================================================================================
-=#
-
 using Pkg
 Pkg.activate(".")
 
@@ -29,35 +15,27 @@ using SymbolicRegression
 using Statistics
 using Printf
 
-# ============================================================================
-# HYPERPARAMETERS
-# ============================================================================
 const HIDDEN_DIM = 32
-const N_HIDDEN_LAYERS = 3                # Deeper network for complex function
-const UDE_LR_PHASE1 = 0.05               # Higher LR initially for fast convergence
-const UDE_LR_PHASE2 = 0.005              # Fine-tuning
-const UDE_LR_PHASE3 = 0.001              # Extra fine-tuning phase
-const UDE_ITERS_PHASE1 = 3000            # More iterations
-const UDE_ITERS_PHASE2 = 2000            
-const UDE_ITERS_PHASE3 = 1000            # Extra phase
-const NODE_LR = 0.01                     
-const NODE_ITERS = 3000                  # More iterations for NODE too
-const PHYSICS_REG_LAMBDA = 0.01          # Physics regularization weight
+const N_HIDDEN_LAYERS = 3
+const UDE_LR_PHASE1 = 0.05
+const UDE_LR_PHASE2 = 0.005
+const UDE_LR_PHASE3 = 0.001
+const UDE_ITERS_PHASE1 = 3000
+const UDE_ITERS_PHASE2 = 2000
+const UDE_ITERS_PHASE3 = 1000
+const NODE_LR = 0.01
+const NODE_ITERS = 3000
+const PHYSICS_REG_LAMBDA = 0.01
 
-# Experiment Configuration - NO 0% noise (testing robustness TO noise)
-const NOISE_LEVELS = [0.01, 0.02, 0.05, 0.10]  # 1%, 2%, 5%, 10% RELATIVE noise
+const NOISE_LEVELS = [0.01, 0.02, 0.05, 0.10]
 const FORECAST_FRACTIONS = [0.5, 0.7, 0.9]
 
-# ============================================================================
-# SETUP
-# ============================================================================
 include("src/StellarModels.jl")
 using .StellarModels
 
 !ispath("outputs") && mkdir("outputs")
 !ispath("data") && mkdir("data")
 
-# Activation function
 swish(x) = x * sigmoid(x)
 
 println("="^70)
@@ -65,9 +43,6 @@ println(" STELLAR STRUCTURE UDE: Missing Term Recovery Pipeline (FIXED)")
 println("="^70)
 Random.seed!(42)
 
-# ============================================================================
-# STEP 1: Generate Ground Truth Data
-# ============================================================================
 println("\n[Step 1] Generating ground truth from baseline physics ODE...")
 
 L₀ = [0.0]
@@ -79,13 +54,11 @@ radii = sol_baseline.t
 L_true = vec(hcat(sol_baseline.u...)')
 n_points = length(radii)
 
-# Scaling factors
 r_scale = R
 L_scale = maximum(L_true)
 
-# Compute true ε_loss for reference
 true_eps_loss = [ϵ_loss(r) for r in radii]
-eps_scale = maximum(true_eps_loss)  # = 0.3 (at r=0)
+eps_scale = maximum(true_eps_loss)
 
 println("   Data points: $n_points")
 println("   Radius range: [$(minimum(radii)), $(maximum(radii))]")
@@ -94,34 +67,22 @@ println("   ε_loss range: [$(minimum(true_eps_loss)), $(maximum(true_eps_loss))
 
 CSV.write("data/ground_truth.csv", DataFrame(radius=radii, luminosity=L_true))
 
-# ============================================================================
-# STEP 2: Define Neural Network Architectures
-# ============================================================================
 println("\n[Step 2] Defining neural network architectures...")
 
-# Neural ODE: Full black-box
 function build_node_nn()
     Flux.Chain(
-        Flux.Dense(2, HIDDEN_DIM, swish),  # Input: (r, L)
+        Flux.Dense(2, HIDDEN_DIM, swish),
         Flux.Dense(HIDDEN_DIM, HIDDEN_DIM, swish),
         Flux.Dense(HIDDEN_DIM, HIDDEN_DIM, swish),
         Flux.Dense(HIDDEN_DIM, 1)
     ) |> Flux.f64
 end
 
-# Maximum possible ε_loss (physical upper bound)
-# True max is λ₀ = 0.3, use 0.5 to give some flexibility
 const EPS_LOSS_MAX = 0.5
 
-# UDE: SIMPLEST POSSIBLE - just learn a single coefficient λ
-# TRUE FORM: ε_loss(r) = λ * T(r)^9
-# We enforce the EXACT physics structure, only learning the amplitude λ
-# This is a single learnable parameter!
 function build_ude_nn()
-    # Single scalar parameter λ, initialized AWAY from true value (0.3)
-    # Initialize to 0.1 so we can observe actual learning
     Flux.Chain(
-        Flux.Dense(1, 1, x -> x, bias=false, init=(out,in)->reshape([0.1], out, in))  # Learns λ directly
+        Flux.Dense(1, 1, x -> x, bias=false, init=(out,in)->reshape([0.1], out, in))
     ) |> Flux.f64
 end
 
@@ -134,13 +95,8 @@ p_ude_init, re_ude = Flux.destructure(nn_ude)
 println("   NODE parameters: $(length(p_node_init))")
 println("   UDE parameters: $(length(p_ude_init))")
 
-# ============================================================================
-# PREDICTION FUNCTIONS
-# ============================================================================
-
 function predict_node(p; L0=L₀, tspan=r_span, saveat=radii)
     function node_dynamics!(dL, L, p, r)
-        # Black-box: NN takes (r, L) and outputs dL/dr directly
         input = [r / r_scale, L[1] / max(L_scale, 1e-6)]
         dL[1] = re_node(p)(input)[1]
     end
@@ -149,27 +105,21 @@ function predict_node(p; L0=L₀, tspan=r_span, saveat=radii)
           sensealg=InterpolatingAdjoint(autojacvec=ZygoteVJP()), verbose=false)
 end
 
-# Physics-informed feature extraction for UDE
-# We pass T(r)^9 directly - the NN just multiplies it by learned λ
 function physics_features(r)
     r_norm = r / r_scale
-    T_val = max(0.0, 1.0 - r_norm^2)  # T(r) = 1 - r²
+    T_val = max(0.0, 1.0 - r_norm^2)
     T9 = T_val^9
-    return [T9]  # The NN will learn λ such that output = λ * T^9
+    return [T9]
 end
 
 function predict_ude(p; L0=L₀, tspan=r_span, saveat=radii)
     function ude_dynamics!(dL, L, p, r)
-        # Known physics term
         known_term = 4π * r^2 * ρ(r) * ϵ_nuc(r)
         
-        # Learned ε_loss: λ * T(r)^9 where λ is learned
         features = physics_features(r)
-        # The NN is just a scalar multiplier: output = λ * input = λ * T^9
-        learned_lambda = re_ude(p)([1.0])[1]  # Get the learned λ
-        learned_eps_loss = max(0.0, learned_lambda) * features[1]  # λ * T^9
+        learned_lambda = re_ude(p)([1.0])[1]
+        learned_eps_loss = max(0.0, learned_lambda) * features[1]
         
-        # Full dynamics
         dL[1] = known_term - 4π * r^2 * ρ(r) * learned_eps_loss
     end
     prob = ODEProblem(ude_dynamics!, L0, tspan, p)
@@ -177,18 +127,13 @@ function predict_ude(p; L0=L₀, tspan=r_span, saveat=radii)
           sensealg=InterpolatingAdjoint(autojacvec=ZygoteVJP()), verbose=false)
 end
 
-# Helper to extract learned ε_loss values
 function get_learned_eps_loss(p, r_values)
     learned_lambda = max(0.0, re_ude(p)([1.0])[1])
-    [learned_lambda * physics_features(r)[1] for r in r_values]  # λ * T(r)^9
+    [learned_lambda * physics_features(r)[1] for r in r_values]
 end
 
-# ============================================================================
-# STEP 3: Train on CLEAN data first (baseline)
-# ============================================================================
 println("\n[Step 3] Training on clean data (baseline)...")
 
-# ---- Train UDE on clean data ----
 println("\n   Training UDE (physics-informed) on clean data...")
 p_ude = copy(p_ude_init)
 iter_count = Ref(0)
@@ -201,10 +146,8 @@ function loss_ude_clean(p, _)
     end
     L_pred = vec(Array(sol)')
     
-    # Data loss only - removed physics regularization for stable gradients
     data_loss = mean(abs2, L_true .- L_pred)
     
-    # Small L2 regularization
     reg_loss = 1e-6 * sum(abs2, p)
     
     return data_loss + reg_loss
@@ -221,7 +164,6 @@ callback_ude = function(state, l)
     return false
 end
 
-# Print initial loss before training
 initial_loss = loss_ude_clean(p_ude, nothing)
 @printf("      Initial Loss: %.2e (λ = %.4f)\n", initial_loss, re_ude(p_ude)([1.0])[1])
 
@@ -258,15 +200,12 @@ println("\n   Baseline Results (Clean Data):")
 @printf("      True ε_loss(0) = %.4f, Learned = %.4f\n", true_eps_loss[1], learned_eps_clean[1])
 @printf("      True ε_loss(0.5) = %.4f, Learned = %.4f\n", true_eps_loss[51], learned_eps_clean[51])
 
-# Compute MSE excluding r<0.1 region (where 4πr²→0 causes identifiability issues)
 idx_valid = radii .>= 0.1
 recovery_mse_valid = mean(abs2, true_eps_loss[idx_valid] .- learned_eps_clean[idx_valid])
 @printf("      ε_loss Recovery MSE (r≥0.1): %.4e\n", recovery_mse_valid)
 
-# Plot baseline recovery - TWO PANEL PLOT
 p_baseline = plot(layout=(1,2), size=(1200, 400))
 
-# Left panel: Full view (shows the r≈0 issue)
 plot!(p_baseline[1], radii, true_eps_loss, label="True ε_loss(r)", lw=3, ls=:dash, color=:blue)
 plot!(p_baseline[1], radii, learned_eps_clean, label="Learned ε_loss(r)", lw=2, color=:orange)
 vline!(p_baseline[1], [0.1], label="r=0.1 (identifiable region →)", ls=:dot, color=:gray, lw=2)
@@ -274,7 +213,6 @@ xlabel!(p_baseline[1], "Radius r")
 ylabel!(p_baseline[1], "Energy Loss Rate ε_loss")
 title!(p_baseline[1], "Full Domain (Note: r≈0 unidentifiable)")
 
-# Right panel: Zoomed to identifiable region (r≥0.1)
 plot!(p_baseline[2], radii[idx_valid], true_eps_loss[idx_valid], label="True ε_loss(r)", lw=3, ls=:dash, color=:blue)
 plot!(p_baseline[2], radii[idx_valid], learned_eps_clean[idx_valid], label="Learned ε_loss(r)", lw=2, color=:orange)
 xlabel!(p_baseline[2], "Radius r")
@@ -284,9 +222,6 @@ annotate!(p_baseline[2], 0.6, 0.015, text(@sprintf("MSE: %.2e", recovery_mse_val
 
 savefig(p_baseline, "outputs/baseline_recovery_clean.png")
 
-# ============================================================================
-# STEP 4: Noise Robustness Analysis  
-# ============================================================================
 println("\n[Step 4] Running noise robustness analysis...")
 
 noise_results = DataFrame(
@@ -303,22 +238,17 @@ for (idx, noise_level) in enumerate(NOISE_LEVELS)
     println(" Noise Level: $(noise_level*100)% (RELATIVE)")
     println("-"^60)
     
-    # Generate RELATIVE noisy data
-    # KEY FIX: Noise is proportional to signal, not constant
     Random.seed!(42 + idx)
     
-    # Relative noise: noise_std = noise_level * L_true at each point
-    # For points where L_true ≈ 0, use small absolute noise floor
     noise_floor = 1e-6 * L_scale
     noise_std = max.(noise_level .* L_true, noise_floor)
     noise = noise_std .* randn(n_points)
     L_noisy = L_true .+ noise
-    L_noisy[1] = 0.0  # Boundary condition
-    L_noisy = max.(L_noisy, 0.0)  # Ensure non-negative (physical constraint)
+    L_noisy[1] = 0.0
+    L_noisy = max.(L_noisy, 0.0)
     
     CSV.write("data/noisy_data_$(noise_level).csv", DataFrame(radius=radii, luminosity=L_noisy))
     
-    # ---- Train Neural ODE ----
     println("\n   Training Neural ODE (black-box)...")
     p_node = copy(p_node_init)
     iter_count[] = 0
@@ -350,7 +280,6 @@ for (idx, noise_level) in enumerate(NOISE_LEVELS)
                                      callback=callback_node, maxiters=NODE_ITERS)
     p_node_trained = result_node.u
     
-    # ---- Train UDE ----
     println("\n   Training UDE (physics-informed)...")
     local p_ude = copy(p_ude_init)
     iter_count[] = 0
@@ -365,7 +294,6 @@ for (idx, noise_level) in enumerate(NOISE_LEVELS)
         
         data_loss = mean(abs2, L_noisy .- L_pred)
         
-        # Small L2 regularization
         reg_loss = 1e-6 * sum(abs2, p)
         
         return data_loss + reg_loss
@@ -401,7 +329,6 @@ for (idx, noise_level) in enumerate(NOISE_LEVELS)
                                     callback=callback_ude_noisy, maxiters=UDE_ITERS_PHASE3)
     p_ude_trained = result_ude.u
     
-    # ---- Evaluate ----
     sol_node = predict_node(p_node_trained)
     sol_ude = predict_ude(p_ude_trained)
     L_node = vec(Array(sol_node)')
@@ -425,7 +352,6 @@ for (idx, noise_level) in enumerate(NOISE_LEVELS)
     @printf("      Physics Recovery MSE: %.4e\n", recovery_mse)
     @printf("      ε_loss(0): True=%.3f, Learned=%.3f\n", true_eps_loss[1], learned_eps[1])
     
-    # ---- Plots ----
     p1 = plot(radii, L_true, label="True Physics", lw=3, color=:black)
     plot!(p1, radii, L_ude, label="UDE", lw=2, ls=:dash, color=:blue)
     plot!(p1, radii, L_node, label="Neural ODE", lw=2, ls=:dot, color=:red)
@@ -436,12 +362,10 @@ for (idx, noise_level) in enumerate(NOISE_LEVELS)
     title!(p1, "Model Comparison ($(Int(noise_level*100))% Relative Noise)")
     savefig(p1, "outputs/comparison_noise_$(Int(noise_level*100))_fixed.png")
     
-    # Recovery plot - TWO PANEL showing identifiability issue
     local recovery_mse_valid = mean(abs2, true_eps_loss[idx_valid] .- learned_eps[idx_valid])
     
     p2 = plot(layout=(1,2), size=(1200, 400))
     
-    # Left: Full domain
     plot!(p2[1], radii, true_eps_loss, label="True ε_loss(r)", lw=3, ls=:dash, color=:blue)
     plot!(p2[1], radii, learned_eps, label="Learned ε_loss(r)", lw=2, color=:orange)
     vline!(p2[1], [0.1], label="", ls=:dot, color=:gray, lw=2)
@@ -449,7 +373,6 @@ for (idx, noise_level) in enumerate(NOISE_LEVELS)
     ylabel!(p2[1], "Energy Loss Rate ε_loss")
     title!(p2[1], "Full Domain ($(Int(noise_level*100))% Noise)")
     
-    # Right: Identifiable region
     plot!(p2[2], radii[idx_valid], true_eps_loss[idx_valid], label="True ε_loss(r)", lw=3, ls=:dash, color=:blue)
     plot!(p2[2], radii[idx_valid], learned_eps[idx_valid], label="Learned ε_loss(r)", lw=2, color=:orange)
     xlabel!(p2[2], "Radius r")
@@ -467,9 +390,6 @@ println(" Noise Robustness Summary")
 println("="^60)
 println(noise_results)
 
-# ============================================================================
-# STEP 5: Forecasting Analysis
-# ============================================================================
 println("\n[Step 5] Running forecasting analysis...")
 
 forecast_results = DataFrame(
@@ -489,14 +409,12 @@ for train_frac in FORECAST_FRACTIONS
     r_train = radii[1:n_train]
     L_train = L_true[1:n_train]
     
-    # Add small relative noise to training data
     Random.seed!(100)
     noise_std = 0.01 .* max.(L_train, 1e-6 * L_scale)
     L_train_noisy = L_train .+ noise_std .* randn(n_train)
     L_train_noisy[1] = 0.0
     L_train_noisy = max.(L_train_noisy, 0.0)
     
-    # ---- Train NODE ----
     println("\n   Training NODE for forecasting...")
     local p_node = copy(p_node_init)
     iter_count[] = 0
@@ -522,7 +440,6 @@ for train_frac in FORECAST_FRACTIONS
     result_node_fc = Optimization.solve(OptimizationProblem(optf_fc, p_node), 
                                         Adam(NODE_LR), callback=callback_fc, maxiters=NODE_ITERS)
     
-    # ---- Train UDE ----
     println("\n   Training UDE for forecasting...")
     local p_ude = copy(p_ude_init)
     iter_count[] = 0
@@ -535,7 +452,6 @@ for train_frac in FORECAST_FRACTIONS
         L_pred = vec(Array(sol)')
         data_loss = mean(abs2, L_train_noisy .- L_pred[1:n_train])
         
-        # Small L2 regularization
         reg_loss = 1e-6 * sum(abs2, p)
         
         return data_loss + reg_loss
@@ -554,7 +470,6 @@ for train_frac in FORECAST_FRACTIONS
                                        Adam(UDE_LR_PHASE3), callback=callback_fc, 
                                        maxiters=UDE_ITERS_PHASE3)
     
-    # ---- Evaluate ----
     sol_node_fc = predict_node(result_node_fc.u)
     sol_ude_fc = predict_ude(result_ude_fc.u)
     L_node_fc = vec(Array(sol_node_fc)')
@@ -572,14 +487,11 @@ for train_frac in FORECAST_FRACTIONS
     @printf("      NODE - Train MSE: %.4e | Test MSE: %.4e\n", node_train_mse, node_test_mse)
     @printf("      UDE  - Train MSE: %.4e | Test MSE: %.4e\n", ude_train_mse, ude_test_mse)
     
-    # Compute relative errors for better visualization
     node_rel_err = abs.(L_node_fc .- L_true) ./ max.(abs.(L_true), 1e-10) * 100
     ude_rel_err = abs.(L_ude_fc .- L_true) ./ max.(abs.(L_true), 1e-10) * 100
     
-    # Three-panel forecast plot for better visualization
     p_fc = plot(layout=(1,3), size=(1600, 450))
     
-    # Left panel: Full trajectory
     plot!(p_fc[1], radii, L_true, label="True Physics", lw=3, color=:black)
     plot!(p_fc[1], radii, L_ude_fc, label="UDE", lw=2, ls=:dash, color=:blue)
     plot!(p_fc[1], radii, L_node_fc, label="NODE", lw=2, ls=:dot, color=:red)
@@ -590,7 +502,6 @@ for train_frac in FORECAST_FRACTIONS
     ylabel!(p_fc[1], "Luminosity L(r)")
     title!(p_fc[1], "Full Trajectory ($(round(Int, train_frac*100))% Train)")
     
-    # Middle panel: Test region zoomed
     test_idx = n_train:n_points
     r_test = radii[test_idx]
     L_true_test = L_true[test_idx]
@@ -606,14 +517,12 @@ for train_frac in FORECAST_FRACTIONS
     ylabel!(p_fc[2], "Luminosity L(r)")
     title!(p_fc[2], "Test Region ($(round(Int, (1-train_frac)*100))% Forecast)")
     
-    # Right panel: Percentage error comparison
     plot!(p_fc[3], radii[2:end], ude_rel_err[2:end], label="UDE Error", lw=2, color=:blue)
     plot!(p_fc[3], radii[2:end], node_rel_err[2:end], label="NODE Error", lw=2, color=:red)
     vline!(p_fc[3], [r_train[end]], label="Train/Test Split", ls=:dash, color=:gray, lw=2)
     xlabel!(p_fc[3], "Radius r")
     ylabel!(p_fc[3], "Relative Error (%)")
     title!(p_fc[3], "Percentage Error Comparison")
-    # Add log scale if errors vary widely
     if maximum(node_rel_err[2:end]) / max(maximum(ude_rel_err[2:end]), 1e-10) > 100
         plot!(p_fc[3], yscale=:log10)
     end
@@ -628,9 +537,6 @@ println(" Forecasting Summary")
 println("="^60)
 println(forecast_results)
 
-# ============================================================================
-# FINAL SUMMARY
-# ============================================================================
 println("\n" * "="^70)
 println(" PIPELINE COMPLETE")
 println("="^70)
